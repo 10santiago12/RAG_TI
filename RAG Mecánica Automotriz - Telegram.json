@@ -1,0 +1,470 @@
+{
+  "name": "RAG Mecánica Automotriz - Telegram",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a8d954cb-22c9-4b95-bc58-dfbc453e64c8",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -304,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/mecanica_automotriz.md",
+        "options": {}
+      },
+      "id": "9014112a-92eb-4d9e-9563-1250bf731ebe",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "id": "36231e88-b9e4-4816-b3f4-2f4b7278b8f4",
+      "name": "Supabase Vector Store (Insert)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        144,
+        -96
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "KfWHjYAR1CH2k28F",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "ed3e8b02-73ad-4d17-9ba5-4b1c44c98b1b",
+      "name": "Embeddings OpenAI (Ingesta)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        64,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.data }}",
+        "options": {}
+      },
+      "id": "b686c6e5-2e17-45ad-a83f-a77eac8445a5",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        256,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "id": "0c7a197e-665a-4005-83ed-37b9e1f31e3a",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        256,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "a9d2288a-b9e2-4e10-937b-5ba5fc8add2a",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -304,
+        608
+      ],
+      "webhookId": "5fb98ae5-c537-4dff-b3ad-393fdeec7a3b",
+      "credentials": {
+        "telegramApi": {
+          "id": "X032klEVH2fc8Rr2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c3000000-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c3000000-0000-4000-8000-000000000002",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "/start",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b7afffd7-7e78-4030-a7ee-f56f65397055",
+      "name": "Es pregunta de texto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "¡Hola! Soy *Mecánico Virtual* 🚗🔧\nPregúntame sobre tipos de vehículos, sistemas, fallas comunes, diagnóstico y mantenimiento. Escríbeme tu pregunta en texto.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "bea4f2b1-cb3e-47f1-a980-73ae18e2692d",
+      "name": "Enviar bienvenida",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        816
+      ],
+      "webhookId": "866fc2dc-1a11-4119-a216-924d2a258b4a",
+      "credentials": {
+        "telegramApi": {
+          "id": "X032klEVH2fc8Rr2",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "# Rol\nEres \"Mecánico Virtual\", un asistente experto en mecánica automotriz. Respondes en español, de forma clara, práctica y ordenada.\n\n# Herramientas\nPara cualquier pregunta sobre vehículos, sistemas, fallas, diagnóstico o mantenimiento, SIEMPRE consulta primero la herramienta \"base_conocimiento_mecanica\". Basa tu respuesta en la información que devuelva.\nSi la herramienta no trae información suficiente, dilo claramente y da solo una orientación general, recomendando acudir a un taller.\n\n# Límites\nSi la pregunta no tiene relación con mecánica automotriz, responde: \"Solo puedo ayudarte con temas de mecánica automotriz. \".\nNunca inventes datos técnicos específicos (torques, medidas, referencias de repuestos)."
+        }
+      },
+      "id": "5fcdddb7-a2f6-4c39-854b-3d43718f495c",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        160,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "id": "85d9b093-223e-4f50-b7dc-29ee653ed46a",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        704
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}"
+      },
+      "id": "876f72d1-a281-4414-8f21-56ecb70c69ea",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "base_conocimiento_mecanica",
+        "toolDescription": "Usa esta herramienta para consultar información sobre vehículos, sistemas, fallas comunes, diagnóstico y mantenimiento automotriz.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "id": "98ad21a5-f15f-4467-9649-26671fd9655e",
+      "name": "Supabase Vector Store (Tool)",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        704
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "KfWHjYAR1CH2k28F",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "181a06ab-ead6-491d-84d1-3581142caf6e",
+      "name": "Embeddings OpenAI (Consulta)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        912
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": null,
+          "name": "",
+          "__aiGatewayManaged": true
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "f11bb70e-62d9-4b35-813a-fb217bc77d44",
+      "name": "Enviar respuesta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        528,
+        464
+      ],
+      "webhookId": "49626303-5155-4d9c-b208-c5a6c597cf37",
+      "credentials": {
+        "telegramApi": {
+          "id": "X032klEVH2fc8Rr2",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store (Insert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI (Ingesta)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store (Insert)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store (Insert)",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Es pregunta de texto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Es pregunta de texto?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar bienvenida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Enviar respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store (Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI (Consulta)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store (Tool)",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "dabc6b2f-d527-43da-aa29-0bd2f77bd6f5",
+  "meta": {
+    "instanceId": "4a5735bb12cbeed74f8dc38e469050861b3065d62bf487ec2412cd6dabc2e7e3"
+  },
+  "nodeGroups": [],
+  "id": "54GxshUtwZiGCjJQ",
+  "tags": []
+}
